@@ -11,8 +11,9 @@ export interface ColumnMapping {
 }
 
 const EMAIL_PATTERN = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/;
-const PHONE_PATTERN = /^[\d\s()+\-.]{7,}$/;
 const DATE_PATTERN = /^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/;
+const DATE_PATTERN_DMY = /^\d{1,2}[/.-]\d{1,2}[/.-]\d{4}$/;
+const PHONE_PATTERN = /^[\d\s()+\-.]{7,}$/;
 
 function inferTypeFromName(name: string): ColumnType {
   const normalized = name.toLowerCase();
@@ -62,15 +63,15 @@ function inferTypeFromValues(values: unknown[]): ColumnType {
   }
 
   const emailCount = nonEmptyValues.filter((value) => typeof value === "string" && EMAIL_PATTERN.test(value)).length;
+  const dateCount = nonEmptyValues.filter((value) => typeof value === "string" && (DATE_PATTERN.test(value) || DATE_PATTERN_DMY.test(value))).length;
   const phoneCount = nonEmptyValues.filter((value) => typeof value === "string" && PHONE_PATTERN.test(value)).length;
-  const dateCount = nonEmptyValues.filter((value) => typeof value === "string" && DATE_PATTERN.test(value)).length;
   const numberCount = nonEmptyValues.filter((value) => typeof value === "number" || (typeof value === "string" && !isNaN(Number(value)))).length;
 
   const total = nonEmptyValues.length;
 
   if (emailCount / total > 0.8) return "email";
-  if (phoneCount / total > 0.8) return "phone";
   if (dateCount / total > 0.8) return "date";
+  if (phoneCount / total > 0.8) return "phone";
   if (numberCount / total > 0.8) return "number";
 
   return "text";

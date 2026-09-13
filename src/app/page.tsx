@@ -14,6 +14,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [jsonView, setJsonView] = useState<'table' | 'json'>('table');
 
   const csvAdapter = new CsvAdapter();
   const excelAdapter = new ExcelAdapter();
@@ -24,6 +25,8 @@ export default function Home() {
       setFile(selectedFile);
       setError(null);
       setDownloadUrl(null);
+      setConvertedData([]);
+      setColumnMappings([]);
       
       const name = selectedFile.name.toLowerCase();
       if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
@@ -47,6 +50,7 @@ export default function Home() {
 
     setIsLoading(true);
     setError(null);
+    setColumnMappings([]);
     
     try {
       let data: JsonRow[];
@@ -69,15 +73,18 @@ export default function Home() {
       if (targetFormat === 'json') {
         setConvertedData(data);
         setDownloadUrl(null);
+        setJsonView('table');
       } else {
         if (targetFormat === 'csv') {
           const csvResult = await csvAdapter.toCsv(data);
           setConvertedData(csvResult);
           setDownloadUrl(URL.createObjectURL(new Blob([csvResult], { type: 'text/csv' })));
+          setJsonView('table');
         } else {
           const excelResult = await excelAdapter.toExcel(data);
           setDownloadUrl(URL.createObjectURL(excelResult));
           setConvertedData([]);
+          setJsonView('table');
         }
       }
     } catch (err: unknown) {
@@ -93,66 +100,85 @@ export default function Home() {
     setTargetFormat(e.target.value as 'csv' | 'excel' | 'json');
   };
 
+  const handleCopyJson = () => {
+    if (typeof convertedData === 'string') {
+      navigator.clipboard.writeText(convertedData).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(JSON.stringify(convertedData, null, 2)).catch(() => {});
+    }
+  };
+
+  const handleDownloadJson = () => {
+    let content: string;
+    if (typeof convertedData === 'string') {
+      content = convertedData;
+    } else {
+      content = JSON.stringify(convertedData, null, 2);
+    }
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'converted.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const highlightJson = (json: string): React.ReactNode => {
+    const escaped = json
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const highlighted = escaped.replace(
+      /("(?:[^"\\]|\\.)*")(\s*:)?|(\d+\.?\d*)|(\btrue\b|\bfalse\b|\bnull\b)/g,
+      (match, str, colon, num, boolNull) => {
+        if (str) return `<span class="text-green-400">${str}</span>${colon || ''}`;
+        if (num) return `<span class="text-orange-400">${num}</span>`;
+        if (boolNull) return `<span class="text-yellow-400">${boolNull}</span>`;
+        return match;
+      }
+    );
+    return <pre className="text-sm font-mono text-gray-200 whitespace-pre" dangerouslySetInnerHTML={{ __html: highlighted }} />;
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
       {/* Header */}
-      <header className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <header className="bg-gray-800/70 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
           <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-medium">
+            <div className="h-7 w-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-xs">
               LA
             </div>
-            <div className="text-lg font-semibold whitespace-nowrap">
-              Lazy Ant Formatter
-            </div>
+            <span className="text-base font-semibold tracking-tight">Lazy Ant Formatter</span>
           </div>
-          <nav className="hidden md:flex space-x-4">
-            <a href="#" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Docs
-            </a>
-            <a href="#" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              GitHub
-            </a>
+          <nav className="hidden md:flex space-x-5">
+            <a href="#" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs</a>
+            <a href="#" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">GitHub</a>
           </nav>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="py-16">
+      <section className="py-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">
+          <h1 className="text-3xl font-bold text-white mb-3">
             CSV ve Excel dosyalarını saniyeler içinde JSON&#39;a çevir
           </h1>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Akıllı sütun eşleme ile format dönüşümlerini basitleştirin. 
-            Veri analisti, geliştirici ve iş analisti için tasarlandı.
+          <p className="text-base text-gray-300 mb-8 max-w-xl mx-auto leading-relaxed">
+            Akıllı sütun eşleme ile format dönüşümlerini basitleştirin.
           </p>
           
-          {/* File Upload Area */}
-          <div className="border-2 border-dashed border-gray-600 rounded-lg p-12 hover:border-gray-500 transition-colors">
-            <label 
-              htmlFor="file-upload" 
-              className="block cursor-pointer"
-              onClick={() => {
-                const input = document.getElementById('file-upload') as HTMLInputElement;
-                if (input) input.click();
-              }}
-            >
-              <div className="space-y-4 text-center">
+          <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 hover:border-gray-500 transition-colors">
+            <label htmlFor="file-upload" className="block cursor-pointer">
+              <div className="space-y-3 text-center">
                 <div className="flex items-center justify-center space-x-3">
-                  <div className="h-10 w-10 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400">
+                  <div className="h-9 w-9 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400">
                     📁
                   </div>
-                  <span className="text-lg font-medium">
-                    Dosya seçmek için tıklayın
-                  </span>
+                  <span className="text-base font-medium">Dosya seçmek için tıklayın</span>
                 </div>
-                <p className="text-sm text-gray-400">
-                  CSV, XLSX, XLS, JSON, TSV desteklenir
-                </p>
-                <p className="text-xs text-gray-500">
-                  Maksimum dosya boyutu: 10MB
-                </p>
+                <p className="text-xs text-gray-400">CSV, XLSX, XLS, JSON, TSV desteklenir · Maksimum 10MB</p>
                 <input
                   id="file-upload"
                   type="file"
@@ -164,17 +190,13 @@ export default function Home() {
             </label>
             
             {file && (
-              <div className="mt-6 text-left">
-                <div className="flex items-center space-x-4 p-3 bg-gray-800 rounded-lg">
-                  <div className="flex-shrink-0 h-8 w-8 bg-indigo-500/20 rounded flex items-center justify-center text-indigo-400 text-sm">
+              <div className="mt-4 text-left">
+                <div className="flex items-center space-x-3 p-2 bg-gray-800 rounded-lg w-fit">
+                  <span className="px-2 py-0.5 bg-indigo-600/30 text-indigo-200 rounded text-xs font-mono font-bold">
                     {sourceFormat.toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-gray-400">
-                      {Math.round(file.size / 1024)} KB
-                    </p>
-                  </div>
+                  </span>
+                  <span className="text-sm font-medium">{file.name}</span>
+                  <span className="text-xs text-gray-400">{Math.round(file.size / 1024)} KB</span>
                 </div>
               </div>
             )}
@@ -183,185 +205,187 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <main className="py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           
-          {sourceFormat && (
-            <>
-              {/* Column Mappings Section */}
-              {columnMappings.length > 0 && (
-                <div className="mb-8">
-                  <h2 className="text-2xl font-semibold text-white mb-6">
-                    Sütun Eşleşmeleri
-                  </h2>
-                  <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-                    <table className="min-w-full divide-y divide-gray-700">
-                      <thead className="bg-gray-900">
-                        <tr>
-                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Sütun Adı
-                          </th>
-                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Algılanan Tip
-                          </th>
-                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            Dönüştürülecek Tip
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-700">
-                        {columnMappings.map((mapping, index) => (
-                          <tr key={index} className="hover:bg-gray-800/50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
-                              {mapping.name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <span className="px-2 py-1 bg-indigo-600/20 text-indigo-200 rounded-full text-xs font-medium">
-                                {mapping.type.toUpperCase()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <select
-                                value={mapping.type}
-onChange={(e) => {
-                                  const newMappings = [...columnMappings];
-                                  newMappings[index] = { ...mapping, type: e.target.value as ColumnMapping['type'] };
-                                  setColumnMappings(newMappings);
-                                }}
-                                className="block w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm font-medium text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                              >
-                                <option value="text">Text</option>
-                                <option value="number">Number</option>
-                                <option value="email">Email</option>
-                                <option value="phone">Phone</option>
-                                <option value="date">Date</option>
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-              
-              {/* Target Format Selector */}
-              <div className="mb-8">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <p className="text-sm font-medium text-gray-400">
-                      Hedef Format
-                    </p>
-                  </div>
-                  <div className="flex-1">
-                    <select
-                      value={targetFormat}
-                      onChange={handleTargetFormatChange}
-                      className="block w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-lg font-medium text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="json">JSON</option>
-                      <option value="csv">CSV</option>
-                      <option value="excel">Excel</option>
-                    </select>
-                  </div>
-                </div>
+          {sourceFormat && columnMappings.length > 0 && (
+            <div className="bg-gray-800 rounded-lg border border-gray-700">
+              <div className="px-4 py-3 border-b border-gray-700">
+                <h2 className="text-sm font-semibold text-white">Sütun Eşleşmeleri</h2>
               </div>
-              
-              {/* Convert Button */}
-              <button
-                onClick={handleConvert}
-                disabled={!file || isLoading}
-                className="w-full flex justify-center items-center py-4 px-6 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-medium text-white transition-colors"
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin h-4 w-4 border-indigo-200 border-t-2"></div>
-                    <span>Dönüştürülüyor...</span>
-                  </div>
-                ) : (
-                  <span>Dönüştür</span>
-                )}
-              </button>
-            </>
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-gray-900">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Sütun</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Algılanan</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Dönüştür</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {columnMappings.map((mapping, index) => (
+                    <tr key={index} className="hover:bg-gray-800/70 transition-colors">
+                      <td className="px-4 py-2.5 font-mono text-sm">{mapping.name}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="px-2 py-0.5 bg-indigo-600/20 text-indigo-200 rounded-full text-xs font-medium">
+                          {mapping.type.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <select
+                          value={mapping.type}
+                          onChange={(e) => {
+                            const newMappings = [...columnMappings];
+                            newMappings[index] = { ...mapping, type: e.target.value as ColumnMapping['type'] };
+                            setColumnMappings(newMappings);
+                          }}
+                          className="block w-full px-2 py-1.5 bg-gray-900 border border-gray-600 rounded text-xs font-medium text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        >
+                          <option value="text">Text</option>
+                          <option value="number">Number</option>
+                          <option value="email">Email</option>
+                          <option value="phone">Phone</option>
+                          <option value="date">Date</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          
-          {/* Error Message */}
+
+          {/* Target Format + Convert */}
+          <div className="flex items-center space-x-4">
+            <select
+              value={targetFormat}
+              onChange={handleTargetFormatChange}
+              className="block px-4 py-2.5 bg-gray-800 border border-gray-600 rounded-lg text-sm font-medium text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+              <option value="excel">Excel</option>
+            </select>
+            <button
+              onClick={handleConvert}
+              disabled={!file || isLoading}
+              className="flex-1 flex justify-center items-center py-2.5 px-6 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+            >
+              {isLoading ? 'Dönüştürülüyor...' : 'Dönüştür'}
+            </button>
+          </div>
+
           {error && (
-            <div className="mt-6 p-4 bg-red-900/50 border border-red-700/50 rounded-lg text-sm">
+            <div className="p-3 bg-red-900/40 border border-red-700/50 rounded-lg text-sm text-red-300">
               {error}
             </div>
           )}
-          
+
           {/* Results Section */}
-          {!isLoading && convertedData && (
-            <>
-              {Array.isArray(convertedData) && convertedData.length > 0 && (
-                <div className="mt-8">
-                  <h2 className="text-2xl font-semibold text-white mb-6">
-                    Sonuç Önizlemesi
-                  </h2>
-                  <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-700">
-                        <thead className="bg-gray-900 sticky top-0 z-10">
-                          <tr>
-                            {Object.keys(convertedData[0] || {}).map((key, index) => (
-                              <th key={index} className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                {key}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-700">
-                          {convertedData.slice(0, 20).map((row, rowIndex) => (
-                            <tr key={rowIndex} className={rowIndex % 2 === 1 ? 'bg-gray-900/50' : 'bg-gray-800'}>
-                              {Object.values(row).map((value, colIndex) => (
-                                <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">
-                                  {value === null || value === undefined ? '' : String(value)}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                          {convertedData.length > 20 && (
-                            <tr>
-                              <td colSpan={Object.keys(convertedData[0] || {}).length} className="px-6 py-4 text-center text-gray-500 italic">
-                                İlk 20 satır gösteriliyor. Toplam {convertedData.length} satır.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+          {!isLoading && convertedData && targetFormat === 'json' && (
+            <div className="bg-gray-800 rounded-lg border border-gray-700">
+              <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-white">Sonuç Önizlemesi</h2>
+                <div className="flex items-center space-x-2">
+                  <div className="flex bg-gray-900 rounded p-0.5">
+                    <button
+                      onClick={() => setJsonView('table')}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        jsonView === 'table' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      Tablo
+                    </button>
+                    <button
+                      onClick={() => setJsonView('json')}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        jsonView === 'json' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      Ham JSON
+                    </button>
                   </div>
-                </div>
-              )}
-              
-              {typeof convertedData === 'string' && (
-                <div className="mt-8">
-                  <h2 className="text-2xl font-semibold text-white mb-6">
-                    Sonuç Önizlemesi
-                  </h2>
-                  <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-                    <div className="p-6 h-96 overflow-auto">
-                      <pre className="text-sm font-mono text-gray-200">{convertedData}</pre>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Download Button */}
-              {downloadUrl && (
-                <div className="mt-8">
-                  <a
-                    href={downloadUrl}
-                    download={`converted.${targetFormat === 'csv' ? 'csv' : 'xlsx'}`}
-                    className="w-full flex justify-center items-center py-4 px-6 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-medium text-white transition-colors"
+                  <button
+                    onClick={handleCopyJson}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-xs font-medium transition-colors"
+                    title="Kopyala"
                   >
-                    {targetFormat.toUpperCase()} Dosyasını İndir
+                    📋
+                  </button>
+                  <button
+                    onClick={handleDownloadJson}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors"
+                    title="İndir .json"
+                  >
+                    ⬇️
+                  </button>
+                </div>
+              </div>
+              
+              {jsonView === 'table' ? (
+                <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-700">
+                    <thead className="bg-gray-900 sticky top-0">
+                      <tr>
+                        {Object.keys((convertedData as JsonRow[])[0] || {}).map((key, index) => (
+                          <th key={index} className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">{key}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {(convertedData as JsonRow[]).slice(0, 20).map((row, rowIndex) => (
+                        <tr key={rowIndex} className={rowIndex % 2 === 1 ? 'bg-gray-900/50' : 'bg-gray-800/50'}>
+                          {Object.values(row).map((value, colIndex) => (
+                            <td key={colIndex} className="px-4 py-2.5 whitespace-nowrap text-sm text-gray-300">
+                              {value === null || value === undefined ? '' : String(value)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                      {(convertedData as JsonRow[]).length > 20 && (
+                        <tr>
+                          <td colSpan={Object.keys((convertedData as JsonRow[])[0] || {}).length} className="px-4 py-3 text-center text-gray-500 italic text-xs">
+                            İlk 20 satır gösteriliyor. Toplam {(convertedData as JsonRow[]).length} satır.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-4 max-h-96 overflow-y-auto bg-gray-900 rounded-b-lg">
+                  {highlightJson(JSON.stringify(convertedData, null, 2))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CSV/Excel Results */}
+          {!isLoading && typeof convertedData === 'string' && (
+            <div className="bg-gray-800 rounded-lg border border-gray-700">
+              <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-white">Sonuç Önizlemesi</h2>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleCopyJson}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-xs font-medium transition-colors"
+                    title="Kopyala"
+                  >
+                    📋
+                  </button>
+                  <a
+                    href={downloadUrl!}
+                    download={`converted.${targetFormat === 'csv' ? 'csv' : 'xlsx'}`}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors"
+                    title="İndir"
+                  >
+                    ⬇️
                   </a>
                 </div>
-              )}
-            </>
+              </div>
+              <div className="p-4 max-h-96 overflow-y-auto bg-gray-900 rounded-b-lg">
+                <pre className="text-sm font-mono text-gray-200 whitespace-pre">{convertedData}</pre>
+              </div>
+            </div>
           )}
         </div>
       </main>
