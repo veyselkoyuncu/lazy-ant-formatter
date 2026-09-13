@@ -42,3 +42,8 @@ gerekmemeli, sadece yeni bir adapter eklenmeli.
 ## Görev takibi
 Bu projede görevler tasks.md dosyasında checkpoint'lerle takip ediliyor.
 Bir checkpoint'e ulaşınca DUR, ilerleme özetini yaz, bir sonraki gruba geçme.
+
+## Hata durumunda davranış
+Build/lint hatası ile karşılaşırsan, çözmeyi 2-3 farklı yaklaşımla dene.
+Hâlâ çözemiyorsan, ne denediğini ve hatanın tam metnini net şekilde özetle,
+kullanıcıdan yönlendirme bekle — rastgele deneme yapmaya devam etme.
