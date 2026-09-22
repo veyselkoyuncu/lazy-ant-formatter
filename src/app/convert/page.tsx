@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { CsvAdapter } from '@/lib/adapters/csv';
 import { TsvAdapter } from '@/lib/adapters/tsv';
 import { XmlAdapter } from '@/lib/adapters/xml';
@@ -189,12 +190,19 @@ export default function Home() {
       {/* Header */}
       <header className="bg-gray-800/70 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-          <div className="flex items-center space-x-3">
-            <div className="h-7 w-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-xs">
-              LA
-            </div>
+          <Link href="/" className="flex items-center space-x-3">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <rect width="32" height="32" rx="6" fill="#4f46e5"/>
+              <circle cx="8" cy="14" r="2.5" fill="white"/>
+              <circle cx="16" cy="12" r="2.5" fill="white"/>
+              <circle cx="24" cy="14" r="2.5" fill="white"/>
+              <circle cx="10" cy="22" r="2" fill="white"/>
+              <circle cx="22" cy="22" r="2" fill="white"/>
+              <path d="M8 14c2-2 4-2 8-2s6 0 16 0" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M10 22c2 2 4 2 10 2s8 0 12 0" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
             <span className="text-base font-semibold tracking-tight">Lazy Ant Formatter</span>
-          </div>
+          </Link>
           <nav className="hidden md:flex space-x-5">
             <a href="#" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs</a>
             <a href="#" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">GitHub</a>
