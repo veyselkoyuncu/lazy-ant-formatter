@@ -3,14 +3,14 @@ import { inferColumnMappings, applyColumnMappings, ColumnType, ColumnMapping, Js
 
 export interface AdapterInterface {
   toJson(file: File): Promise<JsonRow[]>;
-  toCsv(data: JsonRow[], headers?: string[]): Promise<string>;
+  toTsv(data: JsonRow[], headers?: string[]): Promise<string>;
   getColumnMappings(data: JsonRow[]): ColumnMapping[];
   applyMappingOverrides(data: JsonRow[], mappings: ColumnMapping[]): JsonRow[];
 }
 
 export { type ColumnMapping, type ColumnType };
 
-export class CsvAdapter implements AdapterInterface {
+export class TsvAdapter implements AdapterInterface {
   async toJson(file: File): Promise<JsonRow[]> {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
@@ -31,18 +31,20 @@ export class CsvAdapter implements AdapterInterface {
     });
   }
 
-  async toCsv(data: JsonRow[], headers?: string[]): Promise<string> {
+  async toTsv(data: JsonRow[], headers?: string[]): Promise<string> {
     if (data.length === 0) {
       return "";
     }
 
     const keys = headers || Object.keys(data[0]);
+
     const csv = Papa.unparse({
       fields: keys,
       data: data.map((row) => keys.map((key) => row[key] || "")),
     });
 
-    return csv;
+    // Convert commas to tabs for TSV
+    return csv.replace(/,/g, "\t");
   }
 
   getColumnMappings(data: JsonRow[]): ColumnMapping[] {

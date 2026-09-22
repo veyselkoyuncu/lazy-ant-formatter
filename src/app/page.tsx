@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import { CsvAdapter } from '@/lib/adapters/csv';
+import { TsvAdapter } from '@/lib/adapters/tsv';
+import { XmlAdapter } from '@/lib/adapters/xml';
 import { ExcelAdapter } from '@/lib/adapters/excel';
 import { JsonRow, ColumnMapping } from '@/lib/adapters/column';
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
-  const [sourceFormat, setSourceFormat] = useState<'csv' | 'excel' | 'json' | ''>('');
+  const [sourceFormat, setSourceFormat] = useState<'csv' | 'excel' | 'tsv' | 'xml' | 'json' | ''>('');
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
-  const [targetFormat, setTargetFormat] = useState<'csv' | 'excel' | 'json'>('json');
+  const [targetFormat, setTargetFormat] = useState<'csv' | 'excel' | 'tsv' | 'xml' | 'json'>('json');
   const [convertedData, setConvertedData] = useState<JsonRow[] | string>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +19,8 @@ export default function Home() {
   const [jsonView, setJsonView] = useState<'table' | 'json'>('table');
 
   const csvAdapter = new CsvAdapter();
+  const tsvAdapter = new TsvAdapter();
+  const xmlAdapter = new XmlAdapter();
   const excelAdapter = new ExcelAdapter();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,13 +35,17 @@ export default function Home() {
       const name = selectedFile.name.toLowerCase();
       if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
         setSourceFormat('excel');
-      } else if (name.endsWith('.csv') || name.endsWith('.tsv')) {
+      } else if (name.endsWith('.csv')) {
         setSourceFormat('csv');
+      } else if (name.endsWith('.tsv')) {
+        setSourceFormat('tsv');
+      } else if (name.endsWith('.xml')) {
+        setSourceFormat('xml');
       } else if (name.endsWith('.json')) {
         setSourceFormat('json');
       } else {
         setSourceFormat('');
-        setError('Unsupported format. Use CSV, XLSX, or JSON');
+        setError('Unsupported format. Use CSV, TSV, XML, XLSX, or JSON');
       }
     }
   };
@@ -62,10 +70,14 @@ export default function Home() {
       } else {
         if (sourceFormat === 'excel') {
           data = await excelAdapter.toJson(file);
+        } else if (sourceFormat === 'tsv') {
+          data = await tsvAdapter.toJson(file);
+        } else if (sourceFormat === 'xml') {
+          data = await xmlAdapter.toJson(file);
         } else {
           data = await csvAdapter.toJson(file);
         }
-        const sourceAdapter = sourceFormat === 'excel' ? excelAdapter : csvAdapter;
+        const sourceAdapter = sourceFormat === 'excel' ? excelAdapter : sourceFormat === 'tsv' ? tsvAdapter : sourceFormat === 'xml' ? xmlAdapter : csvAdapter;
         mappings = sourceAdapter.getColumnMappings(data);
         setColumnMappings(mappings);
       }
@@ -79,6 +91,16 @@ export default function Home() {
           const csvResult = await csvAdapter.toCsv(data);
           setConvertedData(csvResult);
           setDownloadUrl(URL.createObjectURL(new Blob([csvResult], { type: 'text/csv' })));
+          setJsonView('table');
+        } else if (targetFormat === 'tsv') {
+          const tsvResult = await tsvAdapter.toTsv(data);
+          setConvertedData(tsvResult);
+          setDownloadUrl(URL.createObjectURL(new Blob([tsvResult], { type: 'text/tab-separated-values' })));
+          setJsonView('table');
+        } else if (targetFormat === 'xml') {
+          const xmlResult = await xmlAdapter.toXml(data);
+          setDownloadUrl(URL.createObjectURL(new Blob([xmlResult], { type: 'application/xml' })));
+          setConvertedData([]);
           setJsonView('table');
         } else {
           const excelResult = await excelAdapter.toExcel(data);
@@ -97,7 +119,7 @@ export default function Home() {
   };
 
   const handleTargetFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setTargetFormat(e.target.value as 'csv' | 'excel' | 'json');
+    setTargetFormat(e.target.value as 'csv' | 'excel' | 'tsv' | 'xml' | 'json');
   };
 
   const handleCopyJson = () => {
@@ -178,14 +200,14 @@ export default function Home() {
                   </div>
                   <span className="text-base font-medium">Dosya seçmek için tıklayın</span>
                 </div>
-                <p className="text-xs text-gray-400">CSV, XLSX, XLS, JSON, TSV desteklenir · Maksimum 10MB</p>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".csv,.xlsx,.xls,.json,.tsv"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
+<p className="text-xs text-gray-400">CSV, TSV, XML, XLSX, XLS, JSON desteklenir · Maksimum 10MB</p>
+                   <input
+                     id="file-upload"
+                     type="file"
+                     accept=".csv,.xlsx,.xls,.xml,.json,.tsv"
+                     onChange={handleFileChange}
+                     className="hidden"
+                   />
               </div>
             </label>
             
@@ -263,6 +285,8 @@ export default function Home() {
             >
               <option value="json">JSON</option>
               <option value="csv">CSV</option>
+              <option value="tsv">TSV</option>
+              <option value="xml">XML</option>
               <option value="excel">Excel</option>
             </select>
             <button

@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CsvAdapter } from "@/lib/adapters/csv";
+import { TsvAdapter } from "@/lib/adapters/tsv";
+import { XmlAdapter } from "@/lib/adapters/xml";
 import { ExcelAdapter } from "@/lib/adapters/excel";
 import { ColumnMapping, JsonRow } from "@/lib/adapters/column";
 
 const csvAdapter = new CsvAdapter();
+const tsvAdapter = new TsvAdapter();
+const xmlAdapter = new XmlAdapter();
 const excelAdapter = new ExcelAdapter();
 
 function detectFormat(fileName: string): string {
   const name = fileName.toLowerCase();
   if (name.endsWith(".xlsx") || name.endsWith(".xls")) return "excel";
-  if (name.endsWith(".csv") || name.endsWith(".tsv")) return "csv";
+  if (name.endsWith(".csv")) return "csv";
+  if (name.endsWith(".tsv")) return "tsv";
+  if (name.endsWith(".xml")) return "xml";
   if (name.endsWith(".json")) return "json";
   return "unknown";
 }
 
 function getAdapter(format: string) {
   if (format === "excel") return excelAdapter;
+  if (format === "tsv") return tsvAdapter;
+  if (format === "xml") return xmlAdapter;
   return csvAdapter;
 }
 
@@ -41,7 +49,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const sourceFormat = detectFormat(file.name);
 
     if (sourceFormat === "unknown") {
-      return NextResponse.json({ error: "Unsupported format. Use CSV, XLSX, or JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Unsupported format. Use CSV, TSV, XLSX, XML, or JSON" }, { status: 400 });
     }
 
     let data: JsonRow[];
@@ -79,7 +87,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-        if (targetFormat === "json") {
+    if (targetFormat === "json") {
       return NextResponse.json({ data, mappings, sourceFormat });
     }
 
@@ -87,6 +95,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (targetFormat === "csv") {
       result = await csvAdapter.toCsv(data);
+    } else if (targetFormat === "tsv") {
+      result = await tsvAdapter.toTsv(data);
+    } else if (targetFormat === "xml") {
+      result = await xmlAdapter.toXml(data);
     } else if (targetFormat === "excel") {
       result = await excelAdapter.toExcel(data);
     } else {
@@ -94,8 +106,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const headers = new Headers();
-    const extension = targetFormat === "csv" ? "csv" : "xlsx";
-    const mimeType = targetFormat === "csv" ? "text/csv" : "application/octet-stream";
+    const extension = targetFormat;
+    const mimeType =
+      targetFormat === "csv" || targetFormat === "tsv"
+        ? "text/plain"
+        : targetFormat === "xml"
+          ? "application/xml"
+          : "application/octet-stream";
     headers.set("Content-Type", mimeType);
     headers.set("Content-Disposition", `attachment; filename="converted.${extension}"`);
 
