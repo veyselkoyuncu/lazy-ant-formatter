@@ -52,14 +52,14 @@ export default function Home() {
         setSourceFormat('json');
       } else {
         setSourceFormat('');
-        setError('Unsupported format. Use CSV, TSV, XML, XLSX, or JSON');
+        setError('Desteklenmeyen format. CSV, TSV, XML, XLSX veya JSON kullanın');
       }
     }
   };
 
   const handleConvert = async () => {
     if (!file) {
-      setError('Please select a file');
+      setError('Lütfen önce bir dosya seçin');
       return;
     }
 
@@ -133,7 +133,7 @@ export default function Home() {
       }
     } catch (err: unknown) {
       console.error('Conversion error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred during conversion');
+      setError(err instanceof Error ? err.message : 'Dönüştürme sırasında bir hata oluştu');
       setConvertedData([]);
     } finally {
       setIsLoading(false);
@@ -214,29 +214,29 @@ export default function Home() {
       <section className="py-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl font-bold text-white mb-3">
-            CSV ve Excel dosyalarını saniyeler içinde JSON&#39;a çevir
+            Dosyalarını seç, formatını değiştir
           </h1>
           <p className="text-base text-gray-300 mb-8 max-w-xl mx-auto leading-relaxed">
-            Akıllı sütun eşleme ile format dönüşümlerini basitleştirin.
+            CSV, Excel, XML, YAML, TSV ve JSON arasında akıllı sütun eşleme ile hızlıca dönüşüm yapın.
           </p>
           
-          <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 hover:border-gray-500 transition-colors">
+          <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 hover:border-indigo-400 hover:bg-gray-800/50 transition-all cursor-pointer group">
             <label htmlFor="file-upload" className="block cursor-pointer">
               <div className="space-y-3 text-center">
                 <div className="flex items-center justify-center space-x-3">
-                  <div className="h-9 w-9 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400">
+                  <div className="h-9 w-9 bg-indigo-500/20 rounded-lg flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/30 group-hover:text-indigo-300 transition-all duration-200">
                     📁
                   </div>
-                  <span className="text-base font-medium">Dosya seçmek için tıklayın</span>
+                  <span className="text-base font-medium">Dosyanı sürükle veya seç</span>
                 </div>
-<p className="text-xs text-gray-400">CSV, TSV, XML, XLSX, XLS, JSON desteklenir · Maksimum 10MB</p>
-                   <input
-                     id="file-upload"
-                     type="file"
-                     accept=".csv,.xlsx,.xls,.xml,.json,.tsv"
-                     onChange={handleFileChange}
-                     className="hidden"
-                   />
+                <p className="text-xs text-gray-400">CSV, TSV, XML, XLSX, XLS, JSON desteklenir · Maksimum 10MB</p>
+                <input
+                      id="file-upload"
+                      type="file"
+                      accept=".csv,.xlsx,.xls,.xml,.json,.tsv"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
               </div>
             </label>
             
@@ -264,6 +264,7 @@ export default function Home() {
               <div className="px-4 py-3 border-b border-gray-700">
                 <h2 className="text-sm font-semibold text-white">Sütun Eşleşmeleri</h2>
               </div>
+              <p className="px-4 py-2 text-xs text-gray-500 italic">Sütun tiplerini düzenleyerek dönüşümü özelleştirin</p>
               <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-gray-900">
                   <tr>
@@ -324,7 +325,7 @@ export default function Home() {
             <button
               onClick={handleConvert}
               disabled={!file || isLoading}
-              className="flex-1 flex justify-center items-center py-2.5 px-6 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+              className="flex-1 flex justify-center items-center py-2.5 px-6 bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
             >
               {isLoading ? 'Dönüştürülüyor...' : 'Dönüştür'}
             </button>
@@ -343,37 +344,37 @@ export default function Home() {
                 <h2 className="text-sm font-semibold text-white">Sonuç Önizlemesi</h2>
                 <div className="flex items-center space-x-2">
                   <div className="flex bg-gray-900 rounded p-0.5">
-                    <button
-                      onClick={() => setJsonView('table')}
-                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                        jsonView === 'table' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
-                      }`}
-                    >
-                      Tablo
-                    </button>
-                    <button
-                      onClick={() => setJsonView('json')}
-                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                        jsonView === 'json' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
-                      }`}
-                    >
-                      Ham JSON
-                    </button>
+<button
+                       onClick={() => setJsonView('table')}
+                       className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                         jsonView === 'table' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
+                       }`}
+                     >
+                       Tablo
+                     </button>
+                     <button
+                       onClick={() => setJsonView('json')}
+                       className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                         jsonView === 'json' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
+                       }`}
+                     >
+                       Ham JSON
+                     </button>
                   </div>
-                  <button
-                    onClick={handleCopyJson}
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-xs font-medium transition-colors"
-                    title="Kopyala"
-                  >
-                    📋
-                  </button>
-                  <button
-                    onClick={handleDownloadJson}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors"
-                    title="İndir .json"
-                  >
-                    ⬇️
-                  </button>
+<button
+                     onClick={handleCopyJson}
+                     className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+                     title="Kopyala"
+                   >
+                     📋 Kopyala
+                   </button>
+                   <button
+                     onClick={handleDownloadJson}
+                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg"
+                     title="İndir .json"
+                   >
+                     ⬇️ İndir
+                   </button>
                 </div>
               </div>
               
@@ -399,9 +400,9 @@ export default function Home() {
                       ))}
                       {(convertedData as JsonRow[]).length > 20 && (
                         <tr>
-                          <td colSpan={Object.keys((convertedData as JsonRow[])[0] || {}).length} className="px-4 py-3 text-center text-gray-500 italic text-xs">
-                            İlk 20 satır gösteriliyor. Toplam {(convertedData as JsonRow[]).length} satır.
-                          </td>
+<td colSpan={Object.keys((convertedData as JsonRow[])[0] || {}).length} className="px-4 py-3 text-center text-gray-500 italic text-xs">
+                             🐜 İlk 20 satır gösteriliyor. Toplam {(convertedData as JsonRow[]).length} satır var, daha fazlası için indir!
+                           </td>
                         </tr>
                       )}
                     </tbody>
@@ -428,14 +429,14 @@ export default function Home() {
                   >
                     📋
                   </button>
-                  <a
-                    href={downloadUrl!}
-                    download={`converted.${targetFormat === 'csv' ? 'csv' : 'xlsx'}`}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors"
-                    title="İndir"
-                  >
-                    ⬇️
-                  </a>
+<a
+                     href={downloadUrl!}
+                     download={`converted.${targetFormat === 'csv' ? 'csv' : 'xlsx'}`}
+                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg"
+                     title="İndir"
+                   >
+                     ⬇️ İndir
+                   </a>
                 </div>
               </div>
               <div className="p-4 max-h-96 overflow-y-auto bg-gray-900 rounded-b-lg">
