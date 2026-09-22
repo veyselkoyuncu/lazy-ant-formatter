@@ -2,6 +2,8 @@
 
 Lazy Ant Formatter is a file conversion tool that converts CSV and Excel (.xlsx) files to JSON, and JSON to CSV/Excel, with smart column mapping.
 
+**Live Demo:** https://lazy-ant-formatter.vercel.app/
+
 ## Getting Started
 
 First, install the dependencies:
