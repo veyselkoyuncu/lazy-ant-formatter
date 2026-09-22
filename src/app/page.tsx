@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { CsvAdapter } from '@/lib/adapters/csv';
 import { TsvAdapter } from '@/lib/adapters/tsv';
 import { XmlAdapter } from '@/lib/adapters/xml';
+import { YamlAdapter } from '@/lib/adapters/yaml';
+import { SqlExporter } from '@/lib/exporters/sql';
+import { MarkdownExporter } from '@/lib/exporters/markdown';
 import { ExcelAdapter } from '@/lib/adapters/excel';
 import { JsonRow, ColumnMapping } from '@/lib/adapters/column';
 
@@ -11,7 +14,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [sourceFormat, setSourceFormat] = useState<'csv' | 'excel' | 'tsv' | 'xml' | 'json' | ''>('');
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
-  const [targetFormat, setTargetFormat] = useState<'csv' | 'excel' | 'tsv' | 'xml' | 'json'>('json');
+  const [targetFormat, setTargetFormat] = useState<'csv' | 'excel' | 'tsv' | 'xml' | 'yaml' | 'sql' | 'markdown' | 'json'>('json');
   const [convertedData, setConvertedData] = useState<JsonRow[] | string>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +24,9 @@ export default function Home() {
   const csvAdapter = new CsvAdapter();
   const tsvAdapter = new TsvAdapter();
   const xmlAdapter = new XmlAdapter();
+  const yamlAdapter = new YamlAdapter();
+  const sqlExporter = new SqlExporter();
+  const markdownExporter = new MarkdownExporter();
   const excelAdapter = new ExcelAdapter();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,6 +108,21 @@ export default function Home() {
           setDownloadUrl(URL.createObjectURL(new Blob([xmlResult], { type: 'application/xml' })));
           setConvertedData([]);
           setJsonView('table');
+        } else if (targetFormat === 'yaml') {
+          const yamlResult = await yamlAdapter.toYaml(data);
+          setConvertedData(yamlResult);
+          setDownloadUrl(URL.createObjectURL(new Blob([yamlResult], { type: 'text/yaml' })));
+          setJsonView('table');
+        } else if (targetFormat === 'sql') {
+          const sqlResult = sqlExporter.export(data);
+          setConvertedData(sqlResult);
+          setDownloadUrl(URL.createObjectURL(new Blob([sqlResult], { type: 'text/plain' })));
+          setJsonView('table');
+        } else if (targetFormat === 'markdown') {
+          const mdResult = markdownExporter.export(data);
+          setConvertedData(mdResult);
+          setDownloadUrl(URL.createObjectURL(new Blob([mdResult], { type: 'text/markdown' })));
+          setJsonView('table');
         } else {
           const excelResult = await excelAdapter.toExcel(data);
           setDownloadUrl(URL.createObjectURL(excelResult));
@@ -119,7 +140,7 @@ export default function Home() {
   };
 
   const handleTargetFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setTargetFormat(e.target.value as 'csv' | 'excel' | 'tsv' | 'xml' | 'json');
+    setTargetFormat(e.target.value as 'csv' | 'excel' | 'tsv' | 'xml' | 'yaml' | 'sql' | 'markdown' | 'json');
   };
 
   const handleCopyJson = () => {
@@ -287,7 +308,10 @@ export default function Home() {
               <option value="csv">CSV</option>
               <option value="tsv">TSV</option>
               <option value="xml">XML</option>
+              <option value="yaml">YAML</option>
               <option value="excel">Excel</option>
+              <option value="sql">SQL (sadece dışa aktarım)</option>
+              <option value="markdown">Markdown (sadece dışa aktarım)</option>
             </select>
             <button
               onClick={handleConvert}

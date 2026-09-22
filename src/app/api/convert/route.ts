@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { CsvAdapter } from "@/lib/adapters/csv";
 import { TsvAdapter } from "@/lib/adapters/tsv";
 import { XmlAdapter } from "@/lib/adapters/xml";
+import { YamlAdapter } from "@/lib/adapters/yaml";
+import { SqlExporter } from "@/lib/exporters/sql";
+import { MarkdownExporter } from "@/lib/exporters/markdown";
 import { ExcelAdapter } from "@/lib/adapters/excel";
 import { ColumnMapping, JsonRow } from "@/lib/adapters/column";
 
 const csvAdapter = new CsvAdapter();
 const tsvAdapter = new TsvAdapter();
 const xmlAdapter = new XmlAdapter();
+const yamlAdapter = new YamlAdapter();
 const excelAdapter = new ExcelAdapter();
+const sqlExporter = new SqlExporter();
+const markdownExporter = new MarkdownExporter();
 
 function detectFormat(fileName: string): string {
   const name = fileName.toLowerCase();
@@ -17,6 +23,7 @@ function detectFormat(fileName: string): string {
   if (name.endsWith(".tsv")) return "tsv";
   if (name.endsWith(".xml")) return "xml";
   if (name.endsWith(".json")) return "json";
+  if (name.endsWith(".yaml") || name.endsWith(".yml")) return "yaml";
   return "unknown";
 }
 
@@ -24,6 +31,7 @@ function getAdapter(format: string) {
   if (format === "excel") return excelAdapter;
   if (format === "tsv") return tsvAdapter;
   if (format === "xml") return xmlAdapter;
+  if (format === "yaml") return yamlAdapter;
   return csvAdapter;
 }
 
@@ -49,7 +57,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const sourceFormat = detectFormat(file.name);
 
     if (sourceFormat === "unknown") {
-      return NextResponse.json({ error: "Unsupported format. Use CSV, TSV, XLSX, XML, or JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Unsupported format. Use CSV, TSV, XLSX, XML, YAML, or JSON" }, { status: 400 });
     }
 
     let data: JsonRow[];
@@ -99,6 +107,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       result = await tsvAdapter.toTsv(data);
     } else if (targetFormat === "xml") {
       result = await xmlAdapter.toXml(data);
+    } else if (targetFormat === "yaml") {
+      result = await yamlAdapter.toYaml(data);
+    } else if (targetFormat === "sql") {
+      result = sqlExporter.export(data);
+    } else if (targetFormat === "markdown") {
+      result = markdownExporter.export(data);
     } else if (targetFormat === "excel") {
       result = await excelAdapter.toExcel(data);
     } else {
@@ -112,7 +126,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ? "text/plain"
         : targetFormat === "xml"
           ? "application/xml"
-          : "application/octet-stream";
+          : targetFormat === "yaml"
+            ? "text/yaml"
+            : targetFormat === "sql"
+              ? "text/plain"
+              : targetFormat === "markdown"
+                ? "text/markdown"
+                : "application/octet-stream";
     headers.set("Content-Type", mimeType);
     headers.set("Content-Disposition", `attachment; filename="converted.${extension}"`);
 
