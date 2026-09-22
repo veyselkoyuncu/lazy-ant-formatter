@@ -10,6 +10,9 @@ akıllı sütun eşleştirmeli bir API + basit web arayüzü.
   inline style="" kullanılmamalı (gerçekten kaçınılmaz bir durum yoksa)
 - CSV işleme: papaparse
 - Excel işleme: SheetJS (xlsx paketi)
+- TSV işleme: CSV adapter mantığının delimiter varyasyonu
+- XML işleme: fast-xml-parser
+- YAML işleme: js-yaml
 - Deploy hedefi: Vercel (free tier)
 
 ## Mimari kural
